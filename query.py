@@ -10,11 +10,11 @@ def run_query():
     Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-distilroberta-v1")
 
     index = VectorStoreIndex.from_vector_store(get_es_vector_store())
-    query_engine = index.as_query_engine(local_llm, similarity_top_k=10, response_mode="tree_summarize")
+    query_engine = index.as_query_engine(local_llm, similarity_top_k=3, streaming=True, response_mode="tree_summarize")
 
     bundle = QueryBundle(query, embedding=Settings.embed_model.get_query_embedding(query))
     result = query_engine.query(bundle)
-    return result
+    return result.print_response_stream()
 
 result = run_query()
 print(result)
