@@ -10,9 +10,9 @@ Easily ask questions about your GitHub repository using RAG.
 This project allows you to interact directly with a GitHub repository and leverage semantic search to understand the codebase. Ask specific questions about the repository's code and receive meaningful, context-aware responses.
 
 ### Components
-**Elasticsearch**: Serves as the vector database for efficient storage and retrieval of embeddings.
-**LlamaIndex**: A framework for building applications powered by LLM.
-**OpenAI**: Used for both the LLM and generating embeddings.
+- **Elasticsearch**: Serves as the vector database for efficient storage and retrieval of embeddings.
+- **LlamaIndex**: A framework for building applications powered by LLM.
+- **OpenAI**: Used for both the LLM and generating embeddings.
 
 ### Architecture
 
