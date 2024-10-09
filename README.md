@@ -1,29 +1,24 @@
-# GitHub  Assistant
+# GitHub Assistant
 
-Ask questions about your GitHub repository using RAG and natural language.
+Easily ask questions about your GitHub repository using RAG.
 
-**Disclaimer**
+### Key Considerations:
+- **Quality of Data**: The output is only as good as the input—ensure your data is clean and well-structured.
+- **Chunk Size**: Proper chunking of data is crucial for optimal performance.
+- **Performance Evaluation**: Regularly assess the performance of your RAG-based application.
 
-That's not a production ready code, if you want to use this in production, make sure to:
-- add Metadata on chunks using LLM
-- Add personalized Prompts
-- Evaluate other embeedings model
-- Ensure you perform LLM output evaluation
+This project allows you to interact directly with a GitHub repository and leverage semantic search to understand the codebase. Ask specific questions about the repository's code and receive meaningful, context-aware responses.
 
-_Remember, good data in, good data out._
-
-This project allows you to interact with a specific GitHub repository as if you were having a conversation with it. Essentially, you can pose questions about the code directly to the repository.
-
-Tools:
-- **Elasticsearch**: Vector Database
-- **LlamaIndex**: Framework for building LLM application
-- **HuggingFace**: Host LLM models that can be consumed locally, in this project we're using `sentence-transformers/all-distilroberta-v1` model 
+### Components
+**Elasticsearch**: Serves as the vector database for efficient storage and retrieval of embeddings.
+**LlamaIndex**: A framework for building applications powered by LLM.
+**OpenAI**: Used for both the LLM and generating embeddings.
 
 ### Architecture
 
 ![Github RAG](./images/github-rag.png)
 
-The process involves cloning a GitHub repository locally to the /tmp directory. The `SimpleDirectoryReader` is employed to load the cloned repository folder for indexing purposes. Additionally, metadata is incorporated to determine the file extensions. Subsequently, this metadata is partitioned into nodes and inserted into Elasticsearch which uses a HuggingFace model to generate embeddings from the inserted data.
+The process starts by cloning a GitHub repository locally to the `/tmp` directory. The `SimpleDirectoryReader` is then used to load the cloned repository for indexing. Documents are split into chunks based on file type, utilizing `CodeSplitter` for code files, along with `JSON`, `Markdown`, and `SentenceSplitters` for other formats. After parsing the nodes, embeddings are generated using the `text-embedding-3-large` model and stored in Elasticsearch. This setup enables semantic search, allowing us to ask meaningful questions about the code.
 
 ### Installation
 
