@@ -1,20 +1,47 @@
+import asyncio
 from llama_index.core import VectorStoreIndex, QueryBundle, Settings
-from llama_index.llms.ollama import Ollama
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from index import get_es_vector_store  
+from llama_index.llms.openai import OpenAI
+from llama_index.embeddings.openai import OpenAIEmbedding
+from index import get_es_vector_store
+import httpx
 
-def run_query():
+embed_model = OpenAIEmbedding(model="text-embedding-3-large")
+Settings.embed_model = embed_model
+
+def run_query_sync():
     query = input("Please enter your query: ")
 
-    local_llm = Ollama(model="mistral")
-    Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-distilroberta-v1")
+    openai_llm = OpenAI(model="gpt-4o")
 
-    index = VectorStoreIndex.from_vector_store(get_es_vector_store())
-    query_engine = index.as_query_engine(local_llm, similarity_top_k=3, streaming=True, response_mode="tree_summarize")
+    es_vector_store = get_es_vector_store()
+    index = VectorStoreIndex.from_vector_store(es_vector_store)
 
-    bundle = QueryBundle(query, embedding=Settings.embed_model.get_query_embedding(query))
-    result = query_engine.query(bundle)
-    return result.print_response_stream()
+    try:
+        query_engine = index.as_query_engine(
+            llm=openai_llm,
+            similarity_top_k=3,
+            streaming=False, 
+            response_mode="tree_summarize"
+        )
 
-result = run_query()
-print(result)
+        bundle = QueryBundle(query, embedding=embed_model.get_query_embedding(query))
+
+        result = query_engine.query(bundle)
+        return result.response  
+    except Exception as e:
+        print(f"An error occurred while running the query: {e}")
+    finally:
+        if hasattr(openai_llm, 'client') and isinstance(openai_llm.client, httpx.Client):
+            openai_llm.client.close()
+        if hasattr(embed_model, 'client') and isinstance(embed_model.client, httpx.Client):
+            embed_model.client.close()
+        if hasattr(es_vector_store, "close"):
+            es_vector_store.close()
+            print("Elasticsearch connection closed.")
+
+if __name__ == "__main__":
+    try:
+        result = run_query_sync()
+        print(result)
+    except Exception as e:
+        print(f"An error occurred: {e}")
