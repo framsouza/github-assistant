@@ -1,23 +1,21 @@
-from llama_index.core import Document, Settings, SimpleDirectoryReader, StorageContext, VectorStoreIndex
-from llama_index.core.node_parser import SentenceSplitter, CodeSplitter, MarkdownNodeParser, JSONNodeParser
+from llama_index.core import Document, Settings, SimpleDirectoryReader
+from llama_index.core.node_parser import CodeSplitter, MarkdownNodeParser, JSONNodeParser
 from llama_index.vector_stores.elasticsearch import ElasticsearchStore
 from dotenv import load_dotenv
 from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.core.ingestion import IngestionPipeline
-import tree_sitter_python as tspython
-from tree_sitter_languages import get_parser, get_language
-from tree_sitter import Parser, Language
+from tree_sitter_languages import get_parser
+from elasticsearch import AsyncElasticsearch
 import logging
 import nest_asyncio
 import elastic_transport
-import sys
 import subprocess
-import shutil
 import time
 import glob
 import os
+import sys
 
-#logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+#logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 #logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 #logging.getLogger('elasticsearch').setLevel(logging.DEBUG)
 
@@ -99,7 +97,7 @@ def parse_documents():
     yaml_parser = get_parser('yaml')
 
     parsers_and_extensions = [
-        (SentenceSplitter(), [".md"]),
+        (MarkdownNodeParser(), [".md"]),
         (CodeSplitter(language='python', parser=py_parser), [".py", ".ipynb"]),
         (CodeSplitter(language='typescript', parser=ts_parser), [".ts"]),
         (CodeSplitter(language='go', parser=go_parser), [".go"]),
@@ -130,6 +128,7 @@ def parse_documents():
     print("\n")
     return nodes
 
+
 def get_es_vector_store():
     print("Initializing Elasticsearch store...")
     es_cloud_id = os.getenv("ELASTIC_CLOUD_ID")
@@ -137,20 +136,27 @@ def get_es_vector_store():
     es_password = os.getenv("ELASTIC_PASSWORD")
     index_name = os.getenv("ELASTIC_INDEX")
     retries = 20
+
+    es_client = AsyncElasticsearch(
+        cloud_id=es_cloud_id,
+        basic_auth=(es_user, es_password),
+        request_timeout=120,  
+        retry_on_timeout=True,
+        max_retries=5,
+    )
+
     for attempt in range(retries):
         try:
             es_vector_store = ElasticsearchStore(
                 index_name=index_name,
-                es_cloud_id=es_cloud_id,
-                es_user=es_user,
-                es_password=es_password,
+                es_client=es_client,
                 batch_size=100
             )
             print("Elasticsearch store initialized.")
             return es_vector_store
         except elastic_transport.ConnectionTimeout:
             print(f"Connection attempt {attempt + 1}/{retries} timed out. Retrying...")
-            time.sleep(10)  
+            time.sleep(15)  
     raise Exception("Failed to initialize Elasticsearch store after multiple attempts")
 
 def main():
